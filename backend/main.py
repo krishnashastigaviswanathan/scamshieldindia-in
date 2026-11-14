@@ -1,8 +1,8 @@
 import os
 import sys
-from typing import Optional, List, Dict, Any
+from typing import Optional
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -28,20 +28,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-FRONTEND_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "frontend",
-    "index.html"
-)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT_INDEX = os.path.join(PROJECT_ROOT, "index.html")
+FRONTEND_INDEX = os.path.join(PROJECT_ROOT, "frontend", "index.html")
+FRONTEND_PATH = ROOT_INDEX if os.path.exists(ROOT_INDEX) else FRONTEND_INDEX
 
 
-# Initialize Database
 @app.on_event("startup")
 def startup_event():
     init_db()
 
 
-# Pydantic Schemas
 class AnalyzeRequest(BaseModel):
     message: Optional[str] = Field(default="", description="Raw message, SMS, email, or URL text to analyze")
     sender: Optional[str] = Field(default=None, description="Optional sender header or phone number (e.g. AD-HDFCBK, +919876543210)")
@@ -67,20 +64,12 @@ def serve_dashboard():
 
 @app.post("/analyze")
 def analyze_threat(payload: AnalyzeRequest):
-    """
-    Analyzes message through:
-    1. Regional Indian regex and privacy SHA-256 fingerprinting
-    2. Crowdsourced threat intelligence lookups in threats.db
-    3. AI Scam Persona reverse-engineering (Ollama llama3.2 with heuristic fallback)
-    """
     raw_msg = (payload.message or "").strip()
     message = raw_msg if raw_msg else "General inquiry / unpopulated payload"
     sender = payload.sender.strip() if payload.sender and payload.sender.strip() else None
 
-    # Step 1: Regional Rule & Heuristic Scanner
     scan_res = scan_message(message, sender)
 
-    # Step 2: Query Crowdsourced Threat Database
     indicators_to_check = [{"type": "msg_hash", "value": scan_res["msg_hash"]}]
 
     for upi in scan_res["upi"]["upi_ids"]:
@@ -90,7 +79,6 @@ def analyze_threat(payload: AnalyzeRequest):
         indicators_to_check.append({"type": "url", "value": url})
 
     matched_intel = get_intel_for_indicators(indicators_to_check)
-
     total_flags = sum(item.get("flag_count", 0) for item in matched_intel)
     total_safe = sum(item.get("safe_votes", 0) for item in matched_intel)
 
@@ -98,12 +86,10 @@ def analyze_threat(payload: AnalyzeRequest):
         item.get("scam_category") for item in matched_intel if item.get("scam_category") and item.get("scam_category") != "False Positive (Safe)"
     ))
 
-    # Step 3: Combine Rule Score with Community Intelligence
     raw_score = scan_res["base_score"]
 
     if total_flags > 0:
-        boost = min(30, total_flags * 5)
-        raw_score += boost
+        raw_score += min(30, total_flags * 5)
 
     if total_safe > 0 and total_safe > total_flags:
         reduction = min(35, (total_safe - total_flags) * 8)
@@ -111,7 +97,6 @@ def analyze_threat(payload: AnalyzeRequest):
 
     final_score = max(3, min(99, raw_score))
 
-    # Determine Verdict
     if final_score >= 80:
         verdict = "CRITICAL THREAT"
         risk_level = "CRITICAL"
@@ -125,10 +110,8 @@ def analyze_threat(payload: AnalyzeRequest):
         verdict = "SAFE / LOW RISK"
         risk_level = "SAFE"
 
-    # Step 4: AI Persona Reverse-Engineering
     persona = analyze_scam_persona(message, scan_res)
 
-    # Compile flaggable indicators list for easy frontend voting
     flaggable = [{"type": "msg_hash", "value": scan_res["msg_hash"], "label": f"Message Fingerprint ({scan_res['msg_hash']})"}]
     for u in scan_res["upi"]["upi_ids"]:
         flaggable.append({"type": "upi_id", "value": u, "label": f"UPI VPA: {u}"})
@@ -156,9 +139,6 @@ def analyze_threat(payload: AnalyzeRequest):
 
 @app.post("/flag")
 def flag_threat(payload: FlagRequest):
-    """
-    Submits user crowdsourced threat confirmation or votes safe (False Positive).
-    """
     valid_types = {"msg_hash", "upi_id", "url"}
     if payload.indicator_type not in valid_types:
         raise HTTPException(
@@ -182,9 +162,6 @@ def flag_threat(payload: FlagRequest):
 
 @app.get("/trending")
 def trending_threats():
-    """
-    Returns top 5 most-flagged threat indicators for the live sidebar feed.
-    """
     trending = get_trending_threats(limit=5)
     return {
         "status": "success",
