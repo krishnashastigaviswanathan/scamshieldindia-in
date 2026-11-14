@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard India — AI Phishing & UPI Scam SOC</title>
+    <style>
+        :root {
+            --bg-base: #070b14;
+            --bg-surface: #0d1527;
+            --bg-card: #131f38;
+            --bg-card-hover: #182848;
+            --border-dim: #1e2f50;
+            --border-bright: #2f4575;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --accent-indigo: #6366f1;
+            --danger-red: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.25);
+            --warn-amber: #f59e0b;
+            --warn-glow: rgba(245, 158, 11, 0.25);
+            --safe-green: #10b981;
+            --safe-glow: rgba(16, 185, 129, 0.25);
+            --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            line-height: 1.5;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 40%);
+        }
+
+        /* Top Bar */
+        .topbar {
+            background: rgba(13, 21, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-dim);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand-cluster {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .shield-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.35);
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-badge {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            font-family: var(--font-mono);
+            letter-spacing: 1px;
+            margin-left: 6px;
+        }
+
+        .top-status {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 0.8rem;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 20px;
+            color: var(--text-muted);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--safe-green);
+            box-shadow: 0 0 8px var(--safe-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        /* Helpline Notice Ribbon */
+        .helpline-ribbon {
+            background: linear-gradient(90deg, #1e1b4b, #172554, #1e1b4b);
+            border-bottom: 1px solid #312e81;
+            padding: 8px 24px;
+            font-size: 0.82rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .helpline-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #c7d2fe;
+        }
+
+        .helpline-item strong {
+            color: #38bdf8;
+            font-family: var(--font-mono);
+        }
+
+        .helpline-item a {
+            color: #93c5fd;
+            text-decoration: underline;
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+        }
+
+        @media (max-width: 1080px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards & Panels */
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: border-color 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-bright);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.75px;
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Preset Buttons */
+        .presets-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .preset-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: var(--font-sans);
+        }
+
+        .preset-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-blue);
+            color: var(--text-main);
+        }
+
+        /* Input Form */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .form-label span.hint {
+            color: var(--text-dim);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+        }
+
+        .input-text, .input-textarea, .select-input {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-text:focus, .input-textarea:focus, .select-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+
+        .input-textarea {
+            resize: vertical;
+            min-height: 120px;
+            line-height: 1.4;
+        }
+
+        .btn-analyze {
+            width: 100%;
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn-analyze:hover {
+            background: linear-gradient(135deg, #0369a1, #1d4ed8);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+        }
+
+        .btn-analyze:active {
+            transform: translateY(0);
+        }
+
+        .btn-analyze:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Results Container */
+        #results-container {
+            display: none;
+        }
+
+        /* Hero Verdict Card */
+        .verdict-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border-left: 6px solid var(--accent-blue);
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .verdict-card.critical {
+            border-left-color: var(--danger-red);
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.08), var(--bg-card) 60%);
+            border-right: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .verdict-card.high {
+            border-left-color: #ea580c;
+            background: linear-gradient(90deg, rgba(234, 88, 12, 0.08), var(--bg-card) 60%);
+        }
+
+        .verdict-card.suspicious {
+            border-left-color: var(--warn-amber);
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.08), var(--bg-card) 60%);
+        }
+
+        .verdict-card.safe {
+            border-left-color: var(--safe-green);
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.08), var(--bg-card) 60%);
+        }
+
+        .score-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            background: var(--bg-base);
+            border: 3px solid var(--border-bright);
+        }
+
+        .score-number {
+            font-size: 1.6rem;
+            line-height: 1;
+            font-family: var(--font-mono);
+        }
+
+        .score-total {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .verdict-body h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .verdict-body .category-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 2px 10px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .fingerprint-text {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Community Banner */
+        .community-alert {
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
+        }
+
+        .community-alert.safe-alert {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.35);
+            color: #6ee7b7;
+        }
+
+        /* AI Scam Persona Card */
+        .persona-box {
+            background: var(--bg-surface);
+            border: 1px solid #3730a3;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-image: linear-gradient(135deg, rgba(79, 70, 229, 0.05), transparent);
+        }
+
+        .persona-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        .meta-item .meta-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .meta-item .meta-val {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #c7d2fe;
+        }
+
+        /* Quotes Table / Cards */
+        .triggers-section {
+            margin-top: 14px;
+        }
+
+        .triggers-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .trigger-card {
+            background: var(--bg-base);
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            font-size: 0.82rem;
+        }
+
+        .trigger-quote {
+            color: #fca5a5;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .trigger-reason {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+
+        .action-box {
+            margin-top: 16px;
+            background: rgba(14, 165, 233, 0.08);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.83rem;
+            color: #bae6fd;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        /* Regional & Telecom Indicators */
+        .flag-item {
+            background: var(--bg-base);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .flag-item.severity-CRITICAL {
+            border-left: 4px solid var(--danger-red);
+        }
+
+        .flag-item.severity-HIGH {
+            border-left: 4px solid #ea580c;
+        }
+
+        .flag-item.severity-MEDIUM {
+            border-left: 4px solid var(--warn-amber);
+        }
+
+        .flag-item.severity-INFO {
+            border-left: 4px solid var(--accent-cyan);
+        }
+
+        .flag-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .flag-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-main);
+        }
+
+        .flag-badge {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .badge-CRITICAL { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+        .badge-HIGH { background: rgba(234, 88, 12, 0.2); color: #fb923c; border: 1px solid #ea580c; }
+        .badge-MEDIUM { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
+        .badge-INFO { background: rgba(6, 182, 212, 0.2); color: #67e8f9; border: 1px solid #06b6d4; }
+
+        .flag-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .flag-matches {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: #fca5a5;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        /* Community Contribution Form */
+        .flagging-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .flagging-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .btn-flag-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn-confirm-scam {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid var(--danger-red);
+            color: #fca5a5;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-confirm-scam:hover {
+            background: var(--danger-red);
+            color: #fff;
+        }
+
+        .btn-vote-safe {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid var(--safe-green);
+            color: #6ee7b7;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-vote-safe:hover {
+            background: var(--safe-green);
+            color: #fff;
+        }
+
+        /* Live Sidebar Feed */
+        .sidebar-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        .feed-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-refresh {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+        }
+
+        .btn-refresh:hover {
+            color: var(--accent-cyan);
+        }
+
+        .threat-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+
+        .threat-item:hover {
+            border-color: var(--accent-blue);
+            transform: translateX(2px);
+        }
+
+        .threat-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .type-badge {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: 700;
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .flags-count {
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: #f87171;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .threat-val {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: #e2e8f0;
+            word-break: break-all;
+            margin-bottom: 6px;
+        }
+
+        .threat-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .threat-footer button {
+            background: transparent;
+            border: 1px solid var(--border-dim);
+            color: var(--text-muted);
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.68rem;
+            font-family: var(--font-mono);
+        }
+
+        .threat-footer button:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* Emergency SOP Box */
+        .sop-card {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(245, 158, 11, 0.04));
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 0.8rem;
+        }
+
+        .sop-title {
+            color: #fca5a5;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sop-list {
+            padding-left: 16px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .sop-list li {
+            margin-bottom: 4px;
+        }
+
+        .sop-list strong {
+            color: #fecaca;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--accent-cyan);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="topbar">
+        <div class="brand-cluster">
+            <div class="shield-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="m9 12 2 2 4-4"/>
+                </svg>
+            </div>
+            <div>
+                <span class="brand-title">PhishGuard India</span>
+                <span class="brand-badge">SOC Threat Intel</span>
+            </div>
+        </div>
+        <div class="top-status">
+            <div class="status-pill">
+                <div class="pulse-dot"></div>
+                <span>SOC Engine: Active</span>
+            </div>
+            <div class="status-pill">
+                <span>TRAI DLT 2.0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Helpline Ribbon -->
+    <div class="helpline-ribbon">
+        <div class="helpline-item">
+            <span>🚨 Financial Fraud Hotline:</span>
+            <strong>Dial 1930</strong>
+        </div>
+        <div class="helpline-item">
+            <span>🛡 Telecom Malicious SMS Portal:</span>
+            <strong>Chakshu (sancharsaathi.gov.in)</strong>
+        </div>
+        <div class="helpline-item">
+            <span>🏛 Cyber Crime Reporting:</span>
+            <strong>cybercrime.gov.in</strong>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <main class="main-container">
+
+        <!-- Left Column: Input, Scanner, AI Persona, Flags -->
+        <section class="left-col">
+            
+            <!-- Input Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                        Threat Detection Console
+                    </div>
+                    <span style="font-size: 0.72rem; color: var(--text-dim); font-family: var(--font-mono);">
+                        Privacy-Safe SHA-256 Hashing Active
+                    </span>
+                </div>
+
+                <!-- One-Click Presets for Quick Testing -->
+                <div class="presets-row">
+                    <button class="preset-btn" onclick="loadPreset('sbi')">⚡ SBI PAN/KYC Lure</button>
+                    <button class="preset-btn" onclick="loadPreset('digital_arrest')">🚨 Digital Arrest & Narcotics</button>
+                    <button class="preset-btn" onclick="loadPreset('electricity')">💡 Electricity Cutoff Tonight</button>
+                    <button class="preset-btn" onclick="loadPreset('upi')">💸 Fake UPI PIN Cashback</button>
+                    <button class="preset-btn" onclick="loadPreset('tax_refund')">💰 Income Tax Refund Fraud</button>
+                    <button class="preset-btn" onclick="loadPreset('reward_points')">🎁 Expiring Card Points</button>
+                    <button class="preset-btn" onclick="loadPreset('hinglish_sbi')">🇮🇳 Hinglish Khata Block</button>
+                    <button class="preset-btn" onclick="loadPreset('hinglish_bijli')">🇮🇳 Hinglish Bijli Cutoff</button>
+                    <button class="preset-btn" onclick="loadPreset('hindi_kyc')">🇮🇳 Hindi (Devanagari) KYC</button>
+                    <button class="preset-btn" onclick="loadPreset('tamil_bank')">🇮🇳 Tamil Vangi Block</button>
+                    <button class="preset-btn" onclick="loadPreset('telugu_elec')">🇮🇳 Telugu Current Cut</button>
+                    <button class="preset-btn" onclick="loadPreset('clean')">✅ Legitimate Bank Alert</button>
+                </div>
+
+                <!-- Input Form -->
+                <form id="analyze-form" onsubmit="event.preventDefault(); handleAnalyze(event);">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span>Sender ID / Mobile Header (Optional)</span>
+                            <span class="hint">e.g. AD-HDFCBK, VK-SBIINB or +919876543210</span>
+                        </label>
+                        <input type="text" id="sender-input" class="input-text" placeholder="AD-HDFCBK or 10-digit mobile number">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span>Suspicious Message, SMS, WhatsApp Text or Link</span>
+                            <span class="hint" id="char-count">0 chars (Ctrl+Enter to Scan)</span>
+                        </label>
+                        <textarea id="message-input" class="input-textarea" placeholder="Paste full SMS alert, WhatsApp forward, UPI collect message or suspicious link here..." required oninput="updateCharCount()" onkeydown="if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); handleAnalyze(event); }"></textarea>
+                    </div>
+
+                    <button type="button" id="btn-submit" class="btn-analyze" onclick="handleAnalyze(event)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <span>Scan & Reverse-Engineer Threat</span>
+                    </button>
+
+                    <div id="error-alert-box" class="community-alert" style="display: none; background: rgba(239, 68, 68, 0.18); border-color: #ef4444; color: #fca5a5; margin-top: 14px; margin-bottom: 0;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div id="error-alert-msg">Connection Error</div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results Output (Appears upon analysis) -->
+            <div id="results-container">
+
+                <!-- Verdict & Score Card -->
+                <div id="verdict-card" class="verdict-card critical">
+                    <div class="score-circle">
+                        <div class="score-number" id="res-score">--</div>
+                        <div class="score-total">/ 100</div>
+                    </div>
+                    <div class="verdict-body">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+                            <span class="category-tag" id="res-category" style="margin-bottom: 0;">Unclassified</span>
+                            <span class="category-tag" id="res-language" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border: 1px solid rgba(6, 182, 212, 0.3); margin-bottom: 0;">Dialect: English</span>
+                        </div>
+                        <h2 id="res-verdict">ANALYZING THREAT...</h2>
+                        <div class="fingerprint-text">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2a10 10 0 0 0-10 10c0 5.52 4.48 10 10 10s10-4.48 10-10A10 10 0 0 0 12 2z"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                            <span>Privacy Hash: <strong id="res-hash" style="color: #cbd5e1;">--------</strong> (Zero PII stored)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Community Threat Alert Banner -->
+                <div id="community-alert-box" class="community-alert" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <div id="community-alert-text">Prior community reports exist for this indicator.</div>
+                </div>
+
+                <!-- AI Scam Persona Card -->
+                <div class="persona-box">
+                    <div class="card-header" style="border-color: rgba(99, 102, 241, 0.25);">
+                        <div class="card-title" style="color: #818cf8;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            AI Scam Persona Reverse-Engineering
+                        </div>
+                        <span id="persona-engine-badge" style="font-size: 0.68rem; font-family: var(--font-mono); color: #a5b4fc; background: rgba(99, 102, 241, 0.2); padding: 2px 8px; border-radius: 4px;">
+                            Engine: Active
+                        </span>
+                    </div>
+
+                    <div class="persona-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Scammer Disguise Archetype</div>
+                            <div class="meta-val" id="persona-archetype">Analyzing...</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Primary Psychological Tactic</div>
+                            <div class="meta-val" id="persona-tactic" style="color: #f87171;">Analyzing...</div>
+                        </div>
+                    </div>
+
+                    <div class="triggers-section">
+                        <div class="triggers-title">🎯 Decompiled Manipulative Language & Triggers</div>
+                        <div id="triggers-list">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="action-box">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div>
+                            <strong style="color: #38bdf8;">Standard Operating Procedure (SOP):</strong>
+                            <span id="persona-action">Loading recommended action...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Regional UPI & Telecom Threat Vector Flags -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            Regional UPI & Indian Telecom Threat Vectors
+                        </div>
+                    </div>
+                    <div id="regional-flags-list">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Crowdsourced Threat Flagging Panel -->
+                <div class="flagging-panel">
+                    <div class="card-header" style="border-color: var(--border-dim);">
+                        <div class="card-title" style="color: #fb923c;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                            Crowdsourced Threat Intelligence Contribution
+                        </div>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+                        Help protect millions of Indian UPI and mobile banking users. Confirm this indicator as a known threat or vote safe if it's a false positive.
+                    </p>
+
+                    <div class="flagging-grid">
+                        <div>
+                            <label class="form-label">Indicator to Register</label>
+                            <select id="flag-indicator-select" class="select-input">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Scam Category Tag</label>
+                            <select id="flag-category-select" class="select-input">
+                                <option value="Fake Bank / KYC Scam">Fake Bank / KYC Scam</option>
+                                <option value="UPI Collect / Refund Fraud">UPI Collect / Refund Fraud</option>
+                                <option value="Digital Arrest / TRAI Scam">Digital Arrest / TRAI Scam</option>
+                                <option value="Electricity / e-Challan Scam">Electricity / e-Challan Scam</option>
+                                <option value="Job / Lottery Scam">Job / Lottery Scam</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="btn-flag-group">
+                        <button class="btn-confirm-scam" onclick="submitFlag(false)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            Confirm Threat (Flag Scam)
+                        </button>
+                        <button class="btn-vote-safe" onclick="submitFlag(true)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Vote Safe (False Positive)
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Right Column: Live Feed & Hotline SOP -->
+        <aside class="right-col">
+            
+            <!-- Live Flagged Threats Feed -->
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <div class="feed-title">
+                        <div class="pulse-dot" style="background-color: var(--danger-red); box-shadow: 0 0 8px var(--danger-red);"></div>
+                        Trending Indian Threats
+                    </div>
+                    <button class="btn-refresh" onclick="fetchTrendingThreats()" title="Refresh Feed">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+                <div id="trending-feed-list">
+                    <div style="font-size: 0.8rem; color: var(--text-dim); text-align: center; padding: 20px;">
+                        Loading threat feed...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indian Emergency SOP Card -->
+            <div class="sop-card">
+                <div class="sop-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    Victim Golden Hour Protocol
+                </div>
+                <p style="margin-bottom: 8px; color: #fecaca; font-weight: 500;">
+                    If money was transferred or UPI PIN was entered:
+                </p>
+                <ol class="sop-list">
+                    <li><strong>Immediately dial 1930</strong> within 2 hours. The National Cyber Crime Reporting Portal can trigger bank inter-switch freeze.</li>
+                    <li>Freeze UPI ID and block Net Banking in your bank's official app.</li>
+                    <li>Forward the scam SMS to <strong>1909</strong> or Chakshu at <strong>sancharsaathi.gov.in</strong> to block the scammer's SIM across India.</li>
+                </ol>
+            </div>
+
+        </aside>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast-msg" class="toast">Action recorded.</div>
+
+    <script>
+        // Preset test payloads representing real Indian scam patterns
+        const PRESETS = {
+            sbi: {
+                sender: "9876543210",
+                message: "Dear SBI User, your A/C has been blocked due to incomplete KYC. Please update your PAN Card immediately by clicking http://sbi-pan-kyc-update.xyz/verify to avoid permanent debit suspension."
+            },
+            digital_arrest: {
+                sender: "+918800112233",
+                message: "FedEx Security Alert: Your parcel consignment has been seized at Mumbai Customs containing illegal passports and narcotics. Digital Arrest warrant issued by CBI. Stay on video call interrogation or arrest team will arrive."
+            },
+            electricity: {
+                sender: "9823019283",
+                message: "Dear Consumer, your electricity power will be disconnected tonight at 9:30 PM from the power office because your previous month bill was not updated. Please immediately contact our electricity officer at 9823019283."
+            },
+            upi: {
+                sender: "+917711223344",
+                message: "Congratulations! Rs 5000 cashback approved for your GooglePay. Enter your UPI PIN to receive money into your bank or click upi://pay?pa=refund-desk@okaxis&am=5000 to claim immediately."
+            },
+            challan: {
+                sender: "9123456789",
+                message: "Traffic Police Court Notice: Overdue challan of Rs 2000 against your vehicle. Pay challan immediately or download parivahan-echallan-pay.apk.top to avoid driving license suspension."
+            },
+            tax_refund: {
+                sender: "+919876543210",
+                message: "Income Tax Department: Tax refund of INR 26,450.00 approved for your PAN card. Please verify your account details to claim immediate disbursal: http://incometax-refund.gov-auth.com"
+            },
+            reward_points: {
+                sender: "+919988776655",
+                message: "Dear Customer, your Credit Card reward points worth Rs 8,450 are EXPIRING TODAY. Redeem cash into your bank account now before midnight at http://points-redeem.co.in"
+            },
+            hinglish_sbi: {
+                sender: "9876543210",
+                message: "Dear SBI user, aapka khata band kar diya gaya hai. Turant apna PAN card update karein http://sbi-pan-kyc.top par jakar debit card freeze se bachne ke liye."
+            },
+            hinglish_bijli: {
+                sender: "9823019283",
+                message: "Aapka bijli bill update nahi hua hai. Aaj raat 9:30 baje electricity power cut kar di jayegi. Turant bijli afsar ko call karein 9823019283."
+            },
+            hindi_kyc: {
+                sender: "+919876543210",
+                message: "प्रिय ग्राहक, आपका एसबीआई बैंक खाता निलंबित कर दिया गया है। अपना पैन कार्ड तुरंत अपडेट करने के लिए http://sbi-kyc.top पर क्लिक करें।"
+            },
+            tamil_bank: {
+                sender: "9876543210",
+                message: "அன்புள்ள வாடிக்கையாளரே, உங்கள் வங்கி கணக்கு முடக்கப்பட்டுள்ளது. உடனே பான் கார்டை புதுப்பிக்க http://vangi-kyc.top ஐ கிளிக் செய்யவும்."
+            },
+            telugu_elec: {
+                sender: "9876543210",
+                message: "ప్రియమైన వినియోగదారు, మీ విద్యుత్ బిల్లు చెల్లించనందున ఈ రాత్రి 9:30 గంటలకు విద్యుత్ సరఫరా నిలిపివేయబడుతుంది. వెంటనే 9876543210 సంప్రదించండి."
+            },
+            clean: {
+                sender: "AD-HDFCBK",
+                message: "Dear Customer, INR 2,500.00 debited from A/C **1234 on 14-NOV-26 at ATM HDFC001. Avl Bal: INR 48,210.00. If not done by you, SMS BLOCK to 5676712."
+            }
+        };
+
+        function loadPreset(key) {
+            const p = PRESETS[key];
+            if (!p) return;
+            document.getElementById("sender-input").value = p.sender;
+            document.getElementById("message-input").value = p.message;
+            updateCharCount();
+            showToast(`Loaded ${key.toUpperCase()} sample payload.`);
+        }
+
+        function updateCharCount() {
+            const val = document.getElementById("message-input").value;
+            document.getElementById("char-count").innerText = `${val.length} chars`;
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById("toast-msg");
+            t.innerText = msg;
+            t.style.display = "block";
+            setTimeout(() => { t.style.display = "none"; }, 3500);
+        }
+
+        let currentAnalysis = null;
+
+        async function handleAnalyze(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            const message = document.getElementById("message-input").value.trim();
+            const sender = document.getElementById("sender-input").value.trim();
+            const btn = document.getElementById("btn-submit");
+            const errBox = document.getElementById("error-alert-box");
+            const errMsg = document.getElementById("error-alert-msg");
+
+            if (errBox) errBox.style.display = "none";
+
+            if (!message) {
+                showToast("Please enter a message or URL to analyze.");
+                if (errBox && errMsg) {
+                    errMsg.innerHTML = "<strong>Input required:</strong> Please paste an SMS, WhatsApp text, or URL in the box above.";
+                    errBox.style.display = "flex";
+                }
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> <span>Running SOC Heuristics & AI Reverse-Engineering...</span>`;
+
+            try {
+                const response = await fetch("/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: message, sender: sender || null })
+                });
+
+                if (!response.ok) {
+                    const errorDetail = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorDetail || 'Server error'}`);
+                }
+
+                const data = await response.json();
+                currentAnalysis = data;
+                renderResults(data);
+                showToast("Threat assessment and scam persona decompilation complete.");
+            } catch (err) {
+                console.error("Analysis failed:", err);
+                showToast("Analysis error: " + err.message);
+                if (errBox && errMsg) {
+                    errMsg.innerHTML = `<strong>Scan Failed:</strong> ${escapeHtml(err.message)}.<br><span style="font-size: 0.75rem; color: #cbd5e1;">If the server stopped, make sure the backend process is running at <code>http://127.0.0.1:8000</code>.</span>`;
+                    errBox.style.display = "flex";
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <span>Scan & Reverse-Engineer Threat</span>
+                `;
+            }
+        }
+
+        function renderResults(data) {
+            const container = document.getElementById("results-container");
+            container.style.display = "block";
+
+            // Score & Verdict
+            const scoreEl = document.getElementById("res-score");
+            const verdictEl = document.getElementById("res-verdict");
+            const catEl = document.getElementById("res-category");
+            const hashEl = document.getElementById("res-hash");
+            const cardEl = document.getElementById("verdict-card");
+
+            scoreEl.innerText = data.risk_score;
+            verdictEl.innerText = data.verdict;
+            catEl.innerText = data.primary_category;
+            hashEl.innerText = data.msg_hash;
+
+            // Dialect display
+            const regIntel = (data.scanner_details && data.scanner_details.regional_intel) || {};
+            const langEl = document.getElementById("res-language");
+            if (langEl) {
+                langEl.innerText = `Dialect: ${regIntel.language || 'English'}`;
+            }
+
+            // Verdict styling
+            cardEl.className = "verdict-card " + data.risk_level.toLowerCase();
+
+            // Community Alert Banner
+            const commAlert = document.getElementById("community-alert-box");
+            const commText = document.getElementById("community-alert-text");
+            const comm = data.community_intel;
+
+            if (comm && comm.has_prior_reports) {
+                commAlert.style.display = "flex";
+                commAlert.className = "community-alert";
+                commText.innerHTML = `<strong>Community Alert:</strong> This threat indicator has been flagged <strong>${comm.total_flags} times</strong> by Indian users as <em>${comm.community_categories.join(', ') || 'Scam'}</em>.`;
+            } else if (comm && comm.total_safe_votes > 0) {
+                commAlert.style.display = "flex";
+                commAlert.className = "community-alert safe-alert";
+                commText.innerHTML = `<strong>Community Notice:</strong> ${comm.total_safe_votes} user(s) voted this as a verified False Positive (Safe).`;
+            } else {
+                commAlert.style.display = "none";
+            }
+
+            // AI Persona Card
+            const persona = data.ai_persona || {};
+            document.getElementById("persona-archetype").innerText = persona.archetype || "Unknown Scammer Profile";
+            document.getElementById("persona-tactic").innerText = persona.primary_tactic || "Psychological Pressure";
+            document.getElementById("persona-action").innerText = persona.recommended_action || "Report via 1930 Helpline or Chakshu.";
+            document.getElementById("persona-engine-badge").innerText = persona.engine || "AI Persona Engine";
+
+            const triggersContainer = document.getElementById("triggers-list");
+            triggersContainer.innerHTML = "";
+            const triggers = persona.highlighted_triggers || [];
+            if (triggers.length === 0) {
+                triggersContainer.innerHTML = `<div style="font-size: 0.8rem; color: var(--text-dim); padding: 8px 0;">No overt manipulative phrasing detected in this sample.</div>`;
+            } else {
+                triggers.forEach(t => {
+                    const card = document.createElement("div");
+                    card.className = "trigger-card";
+                    card.innerHTML = `
+                        <div class="trigger-quote">"${escapeHtml(t.quote)}"</div>
+                        <div class="trigger-reason">⚡ <strong>Manipulation Vector:</strong> ${escapeHtml(t.manipulation_reason)}</div>
+                    `;
+                    triggersContainer.appendChild(card);
+                });
+            }
+
+            // Regional & Telecom Flags
+            const flagsContainer = document.getElementById("regional-flags-list");
+            flagsContainer.innerHTML = "";
+            const scan = data.scanner_details;
+
+            let flagItemsCount = 0;
+
+            // 1. UPI checks
+            if (scan.upi && (scan.upi.warnings.length > 0 || scan.upi.upi_ids.length > 0)) {
+                scan.upi.warnings.forEach(w => {
+                    flagItemsCount++;
+                    flagsContainer.appendChild(createFlagItem("UPI Payment / Collect Threat", "CRITICAL", w, scan.upi.deep_links.join(", ")));
+                });
+                if (scan.upi.upi_ids.length > 0) {
+                    flagItemsCount++;
+                    flagsContainer.appendChild(createFlagItem("Detected UPI Virtual Payment Address (VPA)", "INFO", `Identified UPI Handles: ${scan.upi.upi_ids.join(", ")}. Entering UPI PIN deducts funds.`));
+                }
+            }
+
+            // 2. DLT Sender Header Validation
+            if (scan.dlt && scan.dlt.warning) {
+                flagItemsCount++;
+                const sev = scan.dlt.warning.includes("CRITICAL") ? "CRITICAL" : (scan.dlt.warning.includes("HIGH") ? "HIGH" : "MEDIUM");
+                flagsContainer.appendChild(createFlagItem("DLT Telecom Header Anomaly", sev, scan.dlt.warning, scan.dlt.sender ? `Sender: ${scan.dlt.sender}` : null));
+            } else if (scan.dlt && scan.dlt.is_valid_dlt) {
+                flagsContainer.appendChild(createFlagItem("TRAI DLT Commercial Header Valid", "INFO", `Sender '${scan.dlt.sender}' matches TRAI registered entity header format.`));
+            }
+
+            // 3. URLs, Shorteners & APK
+            if (scan.urls && scan.urls.findings.length > 0) {
+                scan.urls.findings.forEach(f => {
+                    flagItemsCount++;
+                    const sev = f.includes("Malware") || f.includes("Impersonation") ? "CRITICAL" : "HIGH";
+                    flagsContainer.appendChild(createFlagItem("URL / Malware Risk", sev, f));
+                });
+            }
+
+            // 4. Indian scam signatures
+            if (scan.signatures && scan.signatures.length > 0) {
+                scan.signatures.forEach(s => {
+                    flagItemsCount++;
+                    flagsContainer.appendChild(createFlagItem(s.threat_label, s.severity, s.description, s.matches.join(" | ")));
+                });
+            }
+
+            // 5. Social Engineering Heuristics
+            if (scan.heuristics && scan.heuristics.factors && scan.heuristics.factors.length > 0) {
+                scan.heuristics.factors.forEach(f => {
+                    flagItemsCount++;
+                    flagsContainer.appendChild(createFlagItem("Psychological Exploitation Vector", "MEDIUM", f));
+                });
+            }
+
+            if (flagItemsCount === 0) {
+                flagsContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--safe-green); padding: 10px 0;">✓ No regional threat signatures or telecom header anomalies detected.</div>`;
+            }
+
+            // Populate Flaggable Indicators Select
+            const flagSelect = document.getElementById("flag-indicator-select");
+            flagSelect.innerHTML = "";
+            (data.flaggable_indicators || []).forEach(item => {
+                const opt = document.createElement("option");
+                opt.value = JSON.stringify({ type: item.type, value: item.value });
+                opt.innerText = item.label;
+                flagSelect.appendChild(opt);
+            });
+
+            // Smooth scroll to results
+            container.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+
+        function createFlagItem(title, severity, desc, matches = null) {
+            const item = document.createElement("div");
+            item.className = `flag-item severity-${severity}`;
+            item.innerHTML = `
+                <div class="flag-top">
+                    <span class="flag-label">${escapeHtml(title)}</span>
+                    <span class="flag-badge badge-${severity}">${severity}</span>
+                </div>
+                <div class="flag-desc">${escapeHtml(desc)}</div>
+                ${matches ? `<div class="flag-matches">Matches: ${escapeHtml(matches)}</div>` : ''}
+            `;
+            return item;
+        }
+
+        async function submitFlag(isSafe) {
+            const selectEl = document.getElementById("flag-indicator-select");
+            const catEl = document.getElementById("flag-category-select");
+
+            if (!selectEl.value) {
+                showToast("No indicator selected to flag.");
+                return;
+            }
+
+            let indicator;
+            try {
+                indicator = JSON.parse(selectEl.value);
+            } catch (e) {
+                showToast("Invalid indicator format.");
+                return;
+            }
+
+            const payload = {
+                indicator_type: indicator.type,
+                indicator_value: indicator.value,
+                scam_category: isSafe ? "False Positive (Safe)" : catEl.value,
+                is_safe: isSafe
+            };
+
+            try {
+                const res = await fetch("/flag", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error("Failed to record flag");
+
+                const result = await res.json();
+                showToast(isSafe ? "Voted Safe recorded! Thank you." : "Threat flag recorded in Community Intelligence!");
+                
+                // Immediately refresh trending sidebar
+                fetchTrendingThreats();
+
+                // Re-run analysis silently to update card badges with new counts
+                handleAnalyze();
+            } catch (err) {
+                showToast("Flag submission error: " + err.message);
+            }
+        }
+
+        async function fetchTrendingThreats() {
+            const listEl = document.getElementById("trending-feed-list");
+            try {
+                const res = await fetch("/trending");
+                if (!res.ok) throw new Error("HTTP error " + res.status);
+                const data = await res.json();
+                const threats = data.threats || [];
+
+                listEl.innerHTML = "";
+                if (threats.length === 0) {
+                    listEl.innerHTML = `<div style="font-size: 0.8rem; color: var(--text-dim); text-align: center; padding: 20px;">No threats reported yet.</div>`;
+                    return;
+                }
+
+                threats.forEach(t => {
+                    const el = document.createElement("div");
+                    el.className = "threat-item";
+                    el.innerHTML = `
+                        <div class="threat-meta">
+                            <span class="type-badge">${escapeHtml(t.indicator_type)}</span>
+                            <span class="flags-count">🔥 ${t.flag_count} Flags</span>
+                        </div>
+                        <div class="threat-val" title="${escapeHtml(t.indicator_value)}">${escapeHtml(truncate(t.indicator_value, 40))}</div>
+                        <div class="threat-footer">
+                            <span style="color: #94a3b8;">${escapeHtml(t.scam_category)}</span>
+                            <button onclick="autofillThreat('${escapeHtml(t.indicator_value)}')">Inspect</button>
+                        </div>
+                    `;
+                    listEl.appendChild(el);
+                });
+            } catch (err) {
+                console.error("Failed to load trending:", err);
+                listEl.innerHTML = `<div style="font-size: 0.8rem; color: #ef4444; padding: 10px;">Failed to load live threat feed.</div>`;
+            }
+        }
+
+        function autofillThreat(val) {
+            document.getElementById("message-input").value = val;
+            updateCharCount();
+            handleAnalyze();
+        }
+
+        function truncate(str, max) {
+            if (!str) return "";
+            return str.length > max ? str.substring(0, max) + "..." : str;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return "";
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Initialize on page load
+        window.addEventListener("DOMContentLoaded", () => {
+            fetchTrendingThreats();
+        });
+    </script>
+</body>
+</html>
